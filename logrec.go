@@ -125,7 +125,7 @@ func (log *Logrec) styleFormat(msg string, mFileInfo map[string]string) string {
 
 func (log *Logrec) Log(lvl Level, msg string) {
 	// get the line, filename, funcname of current call
-	fileInfo, _ := trace(2)
+	fileInfo, _ := trace(3)
 
 	formatMsg := log.styleFormat(msg, fileInfo)
 
