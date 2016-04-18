@@ -80,6 +80,7 @@ func (r *FileRotator) open() error {
 		return fmt.Errorf("can't open new logfile: %s", err)
 	} else {
 		r.fd = fd
+		os.Symlink(name, r.fileName())
 	}
 
 	return nil
