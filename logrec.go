@@ -108,7 +108,7 @@ func trace(depth int) (map[string]string, error) {
 	return mFileInfo, nil
 }
 
-func (log *Logrec) styleFormat(msg string, mFileInfo map[string]string) string {
+func (log *Logrec) styleFormat(lvl Level, msg string, mFileInfo map[string]string) string {
 	b := &bytes.Buffer{}
 
 	nowTime := time.Now().Format("2006-01-02 15:04:05")
@@ -117,7 +117,7 @@ func (log *Logrec) styleFormat(msg string, mFileInfo map[string]string) string {
 	msg = strings.TrimLeft(msg, "\r\n ")
 	msg = strings.TrimRight(msg, "\r\n ")
 
-	fmt.Fprintf(b, "%s %s [%s] %s [%s, %s]\n", nowTime, mFileInfo["func"], log.Level.String(),
+	fmt.Fprintf(b, "%s %s [%s] %s [%s, %s]\n", nowTime, mFileInfo["func"], lvl.String(),
 		msg, mFileInfo["file"], mFileInfo["line"])
 
 	return b.String()
@@ -127,7 +127,7 @@ func (log *Logrec) Log(lvl Level, msg string) {
 	// get the line, filename, funcname of current call
 	fileInfo, _ := trace(3)
 
-	formatMsg := log.styleFormat(msg, fileInfo)
+	formatMsg := log.styleFormat(lvl, msg, fileInfo)
 
 	log.mutex.Lock()
 	io.WriteString(log.Out, formatMsg)
