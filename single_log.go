@@ -1,7 +1,6 @@
 package logrec
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -9,6 +8,11 @@ import (
 	"time"
 
 	"github.com/fengshenyun/logrec/filewriter"
+	"github.com/valyala/bytebufferpool"
+)
+
+var (
+	singleBufferPool bytebufferpool.Pool // 字节内存缓存池，减少内存分配和回收
 )
 
 type SingleLogger struct {
@@ -76,7 +80,7 @@ func (l *SingleLogger) Writew(level int, template string, args ...interface{}) {
 		template = fmt.Sprintf(template, args...)
 	}
 
-	buf := &bytes.Buffer{}
+	buf := singleBufferPool.Get()
 	l.formatHeader(buf, now, file, line)
 	buf.WriteByte('[')
 	buf.WriteString(LogLevel(level).String())
@@ -85,9 +89,10 @@ func (l *SingleLogger) Writew(level int, template string, args ...interface{}) {
 	buf.WriteByte('\n')
 
 	l.writer.Write(buf.Bytes())
+	singleBufferPool.Put(buf)
 }
 
-func (l *SingleLogger) formatHeader(buf *bytes.Buffer, t time.Time, file string, line int) {
+func (l *SingleLogger) formatHeader(buf *bytebufferpool.ByteBuffer, t time.Time, file string, line int) {
 	if l.flag&(log.Ldate|log.Ltime|log.Lmicroseconds) != 0 {
 		if l.flag&log.LUTC != 0 {
 			t = t.UTC()
@@ -104,10 +109,10 @@ func (l *SingleLogger) formatHeader(buf *bytes.Buffer, t time.Time, file string,
 		}
 
 		if l.flag&(log.Ltime|log.Lmicroseconds) != 0 {
-			hour, min, sec := t.Clock()
+			hour, minute, sec := t.Clock()
 			itoa(buf, hour, 2)
 			buf.WriteByte(':')
-			itoa(buf, min, 2)
+			itoa(buf, minute, 2)
 			buf.WriteByte(':')
 			itoa(buf, sec, 2)
 			if l.flag&log.Lmicroseconds != 0 {

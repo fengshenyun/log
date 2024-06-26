@@ -20,5 +20,5 @@ func TestNewSingleLog(t *testing.T) {
 	logger.Error("error log")
 	logger.Fatal("fatal log")
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 }

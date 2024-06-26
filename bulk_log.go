@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	bufferPool bytebufferpool.Pool // 字节内存缓存池，减少内存分配和回收
+	bulkBufferPool bytebufferpool.Pool // 字节内存缓存池，减少内存分配和回收
 )
 
 type BulkLogger struct {
@@ -42,15 +42,13 @@ func NewBulkLoggerWithOptions(opts ...Option) *BulkLogger {
 }
 
 func NewBulkLogger(logLevel int, writer io.Writer, flag int) *BulkLogger {
-	logger := &BulkLogger{
-		buf: bufferPool.Get(),
-		ext: make(map[string]interface{}),
+	return &BulkLogger{
+		buf:      bulkBufferPool.Get(),
+		ext:      make(map[string]interface{}),
+		LogLevel: logLevel,
+		writer:   writer,
+		flag:     flag,
 	}
-
-	logger.LogLevel = logLevel
-	logger.writer = writer
-	logger.flag = flag
-	return logger
 }
 
 func (l *BulkLogger) Level() int {
@@ -182,7 +180,7 @@ func (l *BulkLogger) Finishw() {
 func (l *BulkLogger) wLock() {
 	l.mu.Lock()
 	if l.buf == nil {
-		l.buf = bufferPool.Get()
+		l.buf = bulkBufferPool.Get()
 	}
 
 	if l.ext == nil {
@@ -198,7 +196,7 @@ func (l *BulkLogger) reset() {
 	l.maxLevel = LogLevelNull
 	l.logTime = time.Time{}
 	if l.buf != nil {
-		bufferPool.Put(l.buf)
+		bulkBufferPool.Put(l.buf)
 		l.buf = nil
 	}
 	l.ext = nil
@@ -219,10 +217,10 @@ func (l *BulkLogger) formatHeader(t time.Time, file string, line int) {
 			l.buf.WriteByte(' ')
 		}
 		if l.flag&(log.Ltime|log.Lmicroseconds) != 0 {
-			hour, min, sec := t.Clock()
+			hour, minute, sec := t.Clock()
 			itoa(l.buf, hour, 2)
 			l.buf.WriteByte(':')
-			itoa(l.buf, min, 2)
+			itoa(l.buf, minute, 2)
 			l.buf.WriteByte(':')
 			itoa(l.buf, sec, 2)
 			if l.flag&log.Lmicroseconds != 0 {
